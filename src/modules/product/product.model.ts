@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import Schema from 'mongoose';
 import toJSON from '../toJSON/toJSON';
 import paginate from '../paginate/paginate';
 import { IProductDoc, IProductModel } from './product.interfaces';
@@ -22,6 +23,12 @@ const productSchema = new mongoose.Schema<IProductDoc, IProductModel>(
     },
     stock: {
       type: Number,
+      required: true,
+      trim: true,
+    },
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
       required: true,
       trim: true,
     },

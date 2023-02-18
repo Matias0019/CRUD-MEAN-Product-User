@@ -8,12 +8,13 @@ import { IOptions } from '../paginate/paginate';
 import * as productService from './product.service';
 
 export const createProduct = catchAsync(async (req: Request, res: Response) => {
+  req.body.user = req.user._id
   const product = await productService.createProduct(req.body);
   res.status(httpStatus.CREATED).send(product);
 });
 
 export const getProducts = catchAsync(async (req: Request, res: Response) => {
-  const filter = pick(req.query, ['name', 'role']);
+  const filter = {user:req.user._id};
   const options: IOptions = pick(req.query, ['sortBy', 'limit', 'page', 'projectBy']);
   const result = await productService.queryProducts(filter, options);
   res.send(result);

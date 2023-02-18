@@ -1,4 +1,4 @@
-import { Document, Model } from "mongoose";
+import { Document, Model, ObjectId } from "mongoose";
 import { QueryResult } from "../paginate/paginate";
 
 export interface IProduct {
@@ -6,6 +6,7 @@ export interface IProduct {
     description: string;
     price: number;
     stock: number;
+    user: ObjectId;
 }
 
 export interface IProductDoc extends IProduct, Document {
