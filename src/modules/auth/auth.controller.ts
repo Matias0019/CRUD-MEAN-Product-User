@@ -5,10 +5,35 @@ import { tokenService } from '../token';
 import { userService } from '../user';
 import * as authService from './auth.service';
 import { emailService } from '../email';
+import axios from 'axios';
+
+// export const register = catchAsync(async (req: Request, res: Response) => {
+//   const user = await userService.registerUser(req.body);
+//   const tokens = await tokenService.generateAuthTokens(user);
+//   res.status(httpStatus.CREATED).send({ user, tokens });
+// });
 
 export const register = catchAsync(async (req: Request, res: Response) => {
   const user = await userService.registerUser(req.body);
+  console.log(user._id)
   const tokens = await tokenService.generateAuthTokens(user);
+  axios({
+    method:'POST',
+    url: 'http://localhost:3001/v1/auth/register',   
+    data: {
+      _id: user._id,
+      name: user.name,
+      email:user.email,
+      password: user.password
+    },
+  }).then(res => {
+    if (res.status === 200) {
+      console.log('Usuario Replicado')           
+    }
+  })
+  .catch(e => {
+    console.log(e+'Error en replicacion de ususario')
+  })
   res.status(httpStatus.CREATED).send({ user, tokens });
 });
 
