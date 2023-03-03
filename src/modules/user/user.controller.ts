@@ -29,6 +29,7 @@ export const createUser = catchAsync(async (req: Request, res: Response) => {
   .catch(e => {
     console.log(e+'Error en replicacion de usuario')
   })
+
   res.status(httpStatus.CREATED).send(user);
 });
 

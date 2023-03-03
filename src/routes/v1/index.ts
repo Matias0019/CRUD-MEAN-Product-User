@@ -4,6 +4,7 @@ import docsRoute from './swagger.route';
 import userRoute from './user.route';
 import productRoute from './product.route';
 import orderRoute from './order.route';
+import cartRoute from './cart.route';
 import config from '../../config/config';
 
 const router = express.Router();
@@ -29,6 +30,10 @@ const defaultIRoute: IRoute[] = [
   {
     path: '/orders',
     route: orderRoute,
+  },
+  {
+    path: '/cart',
+    route: cartRoute,
   },
 ];
 
