@@ -7,29 +7,52 @@ import pick from '../utils/pick';
 import { IOptions } from '../paginate/paginate';
 import * as productService from './product.service';
 import axios from 'axios';
+import * as amqp from 'amqplib'
+
+var channel: amqp.Channel, connection;
+var queue = 'product'
+
+async function connect() {
+  const amqpServer = "amqp://localhost:5672";
+  connection = await amqp.connect(amqpServer);
+  channel = await connection.createChannel();
+  await channel.assertQueue("product");
+}
+connect();
 
 export const createProduct = catchAsync(async (req: Request, res: Response) => {
   req.body.user = req.user._id;
   const product = await productService.createProduct(req.body);
-  axios({
-    method:'POST',
-    url: 'http://localhost:3001/v1/products',
-    headers: {authorization:req.headers.authorization},
-    data: {
-      _id: product._id,
-      name: product.name,
-      description:product.description,
-      price: product.price,
-      stock: product.stock
-    },
-  }).then(res => {
-    if (res.status === 200) {
-      console.log('Producto Replicado')           
-    }
-  })
-  .catch(e => {
-    console.log(e+'Error en replicacion de producto')
-  })
+  // axios({
+  //   method:'POST',
+  //   url: 'http://localhost:3001/v1/products',
+  //   headers: {authorization:req.headers.authorization},
+  //   data: {
+  //     _id: product._id,
+  //     name: product.name,
+  //     description:product.description,
+  //     price: product.price,
+  //     stock: product.stock
+  //   },
+  // }).then(res => {
+  //   if (res.status === 200) {
+  //     console.log('Producto Replicado')           
+  //   }
+  // })
+  // .catch(e => {
+  //   console.log(e+'Error en replicacion de producto')
+  // })
+  const sent = await channel.sendToQueue(
+    "product",
+    Buffer.from(
+        JSON.stringify({
+          product
+        })
+    )
+);
+  sent
+      ? console.log(`Sent message to "${queue}" queue`, req.body)
+      : console.log(`Fails sending message to "${queue}" queue`, req.body)
   res.status(httpStatus.CREATED).send(product);
 });
 
@@ -53,24 +76,35 @@ export const getProduct = catchAsync(async (req: Request, res: Response) => {
 export const updateProduct = catchAsync(async (req: Request, res: Response) => {
   if (typeof req.params['productId'] === 'string') {
     const product = await productService.updateProductById(new mongoose.Types.ObjectId(req.params['productId']), req.body);
-    axios({
-      method:'PATCH',
-      url: (`http://localhost:3001/v1/products/${req.params['productId']}`),
-      headers: {authorization:req.headers.authorization},
-      data: {
-        name: product?.name,
-        description:product?.description,
-        price: product?.price,
-        stock: product?.stock
-      },
-    }).then(res => {
-      if (res.status === 200) {
-        console.log('Producto Modificado')           
-      }
-    })
-    .catch(e => {
-      console.log(e+'Error en la modificacion de producto')
-    })
+    // axios({
+    //   method:'PATCH',
+    //   url: (`http://localhost:3001/v1/products/${req.params['productId']}`),
+    //   headers: {authorization:req.headers.authorization},
+    //   data: {
+    //     name: product?.name,
+    //     description:product?.description,
+    //     price: product?.price,
+    //     stock: product?.stock
+    //   },
+    // }).then(res => {
+    //   if (res.status === 200) {
+    //     console.log('Producto Modificado')           
+    //   }
+    // })
+    // .catch(e => {
+    //   console.log(e+'Error en la modificacion de producto')
+    // })
+    const sent = await channel.sendToQueue(
+      "product",
+      Buffer.from(
+          JSON.stringify({
+            product
+          })
+      )
+  );
+    sent
+        ? console.log(`Sent message to "${queue}" queue`, req.body)
+        : console.log(`Fails sending message to "${queue}" queue`, req.body)
     res.send(product);
   }
 });

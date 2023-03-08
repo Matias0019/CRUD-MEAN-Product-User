@@ -17,7 +17,7 @@ export default async function subscriber(){
         console.log(`Message recibido de la cola: ${queue}`)
         console.log(content)
 
-        for (let item of content.carts){
+        for (let item of content.productFinal){
         let productStock = await productService.getProductById((item.productId));
         if (productStock != null && productStock >= item.quantity){
             productStock.stock -= item.quantity
