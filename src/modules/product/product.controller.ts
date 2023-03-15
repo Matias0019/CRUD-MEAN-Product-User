@@ -6,23 +6,29 @@ import ApiError from '../errors/ApiError';
 import pick from '../utils/pick';
 import { IOptions } from '../paginate/paginate';
 import * as productService from './product.service';
-import axios from 'axios';
+//import axios from 'axios';
 import * as amqp from 'amqplib'
+import Pulsar from 'pulsar-client'
 
 var channel: amqp.Channel, connection;
-var queue = 'product'
+//var queuecreate = 'create-product'
+var queueupdate = 'update-product'
+var queuedelete = 'delete-product'
 
 async function connect() {
   const amqpServer = "amqp://localhost:5672";
   connection = await amqp.connect(amqpServer);
   channel = await connection.createChannel();
-  await channel.assertQueue("product");
+  await channel.assertQueue("create-product");
+  await channel.assertQueue("update-product");
+  await channel.assertQueue("delete-product");
 }
 connect();
 
 export const createProduct = catchAsync(async (req: Request, res: Response) => {
   req.body.user = req.user._id;
   const product = await productService.createProduct(req.body);
+ 
   // axios({
   //   method:'POST',
   //   url: 'http://localhost:3001/v1/products',
@@ -42,17 +48,45 @@ export const createProduct = catchAsync(async (req: Request, res: Response) => {
   // .catch(e => {
   //   console.log(e+'Error en replicacion de producto')
   // })
-  const sent = await channel.sendToQueue(
-    "product",
-    Buffer.from(
-        JSON.stringify({
-          product
+//   const sent = await channel.sendToQueue(
+//     "create-product",
+//     Buffer.from(
+//         JSON.stringify({
+//           product
+//         })
+//     )
+// );
+//   sent
+//       ? console.log(`Sent message to "${queuecreate}" queue`, req.body)
+//       : console.log(`Fails sending message to "${queuecreate}" queue`, req.body);
+
+      (async () => {
+        // Create a client
+        const client = new Pulsar.Client({
+          serviceUrl: 'pulsar://localhost:6650',
+        });
+      
+        // Create a producer
+        const producer = await client.createProducer({
+          topic: 'create-product',
+        });
+      
+        // Send messages
+          producer.send({
+            data: Buffer.from(
+              JSON.stringify({
+              product
         })
-    )
-);
-  sent
-      ? console.log(`Sent message to "${queue}" queue`, req.body)
-      : console.log(`Fails sending message to "${queue}" queue`, req.body)
+        ),
+          });
+          console.log(`Sent message: ${product}`);
+        
+        await producer.flush();
+      
+        await producer.close();
+        await client.close();
+      })();
+
   res.status(httpStatus.CREATED).send(product);
 });
 
@@ -95,7 +129,7 @@ export const updateProduct = catchAsync(async (req: Request, res: Response) => {
     //   console.log(e+'Error en la modificacion de producto')
     // })
     const sent = await channel.sendToQueue(
-      "product",
+      "update-product",
       Buffer.from(
           JSON.stringify({
             product
@@ -103,8 +137,8 @@ export const updateProduct = catchAsync(async (req: Request, res: Response) => {
       )
   );
     sent
-        ? console.log(`Sent message to "${queue}" queue`, req.body)
-        : console.log(`Fails sending message to "${queue}" queue`, req.body)
+        ? console.log(`Sent message to "${queueupdate}" queue`, req.body)
+        : console.log(`Fails sending message to "${queueupdate}" queue`, req.body)
     res.send(product);
   }
 });
@@ -112,20 +146,32 @@ export const updateProduct = catchAsync(async (req: Request, res: Response) => {
 export const deleteProduct = catchAsync(async (req: Request, res: Response) => {
   if (typeof req.params['productId'] === 'string') {
     await productService.deleteProductById(new mongoose.Types.ObjectId(req.params['productId']));
-    axios({
-      method:'DELETE',
-      url: (`http://localhost:3001/v1/products/${req.params['productId']}`),
-      headers: {authorization:req.headers.authorization},
-      data: {
-      },
-    }).then(res => {
-      if (res.status === 200) {
-        console.log('Producto Eliminado')           
-      }
-    })
-    .catch(e => {
-      console.log(e+'Error en la eliminacion de producto')
-    })
+    const productId = req.params['productId']
+    // axios({
+    //   method:'DELETE',
+    //   url: (`http://localhost:3001/v1/products/${req.params['productId']}`),
+    //   headers: {authorization:req.headers.authorization},
+    //   data: {
+    //   },
+    // }).then(res => {
+    //   if (res.status === 200) {
+    //     console.log('Producto Eliminado')           
+    //   }
+    // })
+    // .catch(e => {
+    //   console.log(e+'Error en la eliminacion de producto')
+    // })
+    const sent = await channel.sendToQueue(
+      "delete-product",
+      Buffer.from(
+          JSON.stringify({
+            productId
+          })
+      )
+  );
+    sent
+        ? console.log(`Sent message to "${queuedelete}" queue`, productId)
+        : console.log(`Fails sending message to "${queuedelete}" queue`, productId)
     res.status(httpStatus.NO_CONTENT).send();
   }
 });

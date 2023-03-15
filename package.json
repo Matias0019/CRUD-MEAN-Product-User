@@ -128,6 +128,7 @@
     "passport": "^0.6.0",
     "passport-jwt": "^4.0.0",
     "pm2": "^5.1.2",
+    "pulsar-client": "^1.8.1",
     "swagger-jsdoc": "^6.1.0",
     "swagger-ui-express": "^4.2.0",
     "validator": "^13.7.0",
