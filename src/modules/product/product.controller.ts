@@ -6,9 +6,10 @@ import ApiError from '../errors/ApiError';
 import pick from '../utils/pick';
 import { IOptions } from '../paginate/paginate';
 import * as productService from './product.service';
-//import axios from 'axios';
 import * as amqp from 'amqplib'
-import Pulsar from 'pulsar-client'
+//import Pulsar from 'pulsar-client'
+import { sendMessage } from './product.producer';
+//import { crearProductProducer }from './product.producer';
 
 var channel: amqp.Channel, connection;
 //var queuecreate = 'create-product'
@@ -28,64 +29,33 @@ connect();
 export const createProduct = catchAsync(async (req: Request, res: Response) => {
   req.body.user = req.user._id;
   const product = await productService.createProduct(req.body);
- 
-  // axios({
-  //   method:'POST',
-  //   url: 'http://localhost:3001/v1/products',
-  //   headers: {authorization:req.headers.authorization},
-  //   data: {
-  //     _id: product._id,
-  //     name: product.name,
-  //     description:product.description,
-  //     price: product.price,
-  //     stock: product.stock
-  //   },
-  // }).then(res => {
-  //   if (res.status === 200) {
-  //     console.log('Producto Replicado')           
-  //   }
-  // })
-  // .catch(e => {
-  //   console.log(e+'Error en replicacion de producto')
-  // })
-//   const sent = await channel.sendToQueue(
-//     "create-product",
-//     Buffer.from(
-//         JSON.stringify({
-//           product
-//         })
-//     )
-// );
-//   sent
-//       ? console.log(`Sent message to "${queuecreate}" queue`, req.body)
-//       : console.log(`Fails sending message to "${queuecreate}" queue`, req.body);
 
-      (async () => {
-        // Create a client
-        const client = new Pulsar.Client({
-          serviceUrl: 'pulsar://localhost:6650',
-        });
-      
-        // Create a producer
-        const producer = await client.createProducer({
-          topic: 'create-product',
-        });
-      
-        // Send messages
-          producer.send({
-            data: Buffer.from(
-              JSON.stringify({
-              product
-        })
-        ),
-          });
-          console.log(`Sent message: ${product}`);
-        
-        await producer.flush();
-      
-        await producer.close();
-        await client.close();
-      })();
+  await sendMessage(product);
+
+  // (async () => {
+  //   // Create a client
+  //   const client = new Pulsar.Client({
+  //     serviceUrl: 'pulsar://localhost:6650',
+  //   });
+  
+  //   // Create a producer
+  //   const producer = await client.createProducer({
+  //     topic: 'my-topic',
+  //   });
+  
+  //   // Send messages
+  //   for (let i = 0; i < 10; i += 1) {
+  //     const msg = `my-message-${i}`;
+  //     producer.send({
+  //       data: Buffer.from(msg),
+  //     });
+  //     console.log(`Sent message: ${msg}`);
+  //   }
+  //   await producer.flush();
+  
+  //   await producer.close();
+  //   await client.close();
+  // })();
 
   res.status(httpStatus.CREATED).send(product);
 });
